@@ -25,26 +25,80 @@ public final class Blackboard extends PropertyChangeSupport {
     PlayerState previous = players.put(state.player(), state);
     firePropertyChange(new java.beans.PropertyChangeEvent(this, PLAYERS, previous, state));
   }
+
   public PlayerState getPlayer(String username) { return players.get(username); }
+
   public Collection<PlayerState> players() { return List.copyOf(players.values()); }
+
   public void addLocalPlayer(PlayerState state) {
     localUsername = state.player();
     store(state);
     publisher.publish(state);
   }
+
   public void moveLocal(String username, int dx, int dy) {
-    // TODO: move only the local player one cardinal tile within the board.
-    // Store the changed snapshot and publish it once.
+    if (localUsername == null || !localUsername.equals(username)) {
+      return;
+    }
+
+    boolean horizontal = dy == 0 && (dx == -1 || dx == 1);
+    boolean vertical = dx == 0 && (dy == -1 || dy == 1);
+    if (!horizontal && !vertical) {
+      return;
+    }
+
+    PlayerState current = players.get(username);
+    int x = current.x() + dx;
+    int y = current.y() + dy;
+    if (x < 0 || x >= COLUMNS || y < 0 || y >= ROWS) {
+      return;
+    }
+
+    PlayerState moved = new PlayerState(
+        current.player(), current.type(), x, y, current.equipment());
+    store(moved);
+    publisher.publish(moved);
   }
+
   public void applyRemote(PlayerState state) {
     if (!state.player().equals(localUsername)) store(state);
   }
+
   public void equipLocal(String username, String item) {
-    // TODO: append supported equipment to the local snapshot if absent.
-    // Store the changed snapshot and publish it once.
+    if (localUsername == null || !localUsername.equals(username)) {
+      return;
+    }
+    if (!"sword".equals(item) && !"shield".equals(item) && !"shoes".equals(item)) {
+      return;
+    }
+
+    PlayerState current = players.get(username);
+    if (current.equipment().contains(item)) {
+      return;
+    }
+
+    List<String> equipment = new ArrayList<>(current.equipment());
+    equipment.add(item);
+    PlayerState updated = new PlayerState(
+        current.player(), current.type(), current.x(), current.y(), equipment);
+    store(updated);
+    publisher.publish(updated);
   }
+
   public void unequipLocal(String username, String item) {
-    // TODO: remove the requested item from the local snapshot if present.
-    // Preserve the order of the other items, store the snapshot, and publish it once.
+    if (localUsername == null || !localUsername.equals(username)) {
+      return;
+    }
+
+    PlayerState current = players.get(username);
+    List<String> equipment = new ArrayList<>(current.equipment());
+    if (!equipment.remove(item)) {
+      return;
+    }
+
+    PlayerState updated = new PlayerState(
+        current.player(), current.type(), current.x(), current.y(), equipment);
+    store(updated);
+    publisher.publish(updated);
   }
 }
