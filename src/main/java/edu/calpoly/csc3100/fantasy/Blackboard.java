@@ -65,12 +65,40 @@ public final class Blackboard extends PropertyChangeSupport {
   }
 
   public void equipLocal(String username, String item) {
-    // TODO: append supported equipment to the local snapshot if absent.
-    // Store the changed snapshot and publish it once.
+    if (localUsername == null || !localUsername.equals(username)) {
+      return;
+    }
+    if (!"sword".equals(item) && !"shield".equals(item) && !"shoes".equals(item)) {
+      return;
+    }
+
+    PlayerState current = players.get(username);
+    if (current.equipment().contains(item)) {
+      return;
+    }
+
+    List<String> equipment = new ArrayList<>(current.equipment());
+    equipment.add(item);
+    PlayerState updated = new PlayerState(
+        current.player(), current.type(), current.x(), current.y(), equipment);
+    store(updated);
+    publisher.publish(updated);
   }
 
   public void unequipLocal(String username, String item) {
-    // TODO: remove the requested item from the local snapshot if present.
-    // Preserve the order of the other items, store the snapshot, and publish it once.
+    if (localUsername == null || !localUsername.equals(username)) {
+      return;
+    }
+
+    PlayerState current = players.get(username);
+    List<String> equipment = new ArrayList<>(current.equipment());
+    if (!equipment.remove(item)) {
+      return;
+    }
+
+    PlayerState updated = new PlayerState(
+        current.player(), current.type(), current.x(), current.y(), equipment);
+    store(updated);
+    publisher.publish(updated);
   }
 }
