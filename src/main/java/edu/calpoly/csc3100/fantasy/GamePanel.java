@@ -3,6 +3,8 @@ package edu.calpoly.csc3100.fantasy;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 /** Draws the board and binds commands for the local player. */
 public final class GamePanel extends JPanel {
@@ -11,6 +13,15 @@ public final class GamePanel extends JPanel {
 
   public GamePanel(Blackboard blackboard, String username) {
     this.blackboard = blackboard;
+
+    setFocusable(true);
+    addMouseListener(new MouseAdapter() {
+      @Override
+      public void mousePressed(MouseEvent event) {
+        requestFocusInWindow();
+      }
+    });
+
     setPreferredSize(new Dimension(Blackboard.COLUMNS * TILE, Blackboard.ROWS * TILE));
     blackboard.addPropertyChangeListener(Blackboard.PLAYERS, event -> {
       if (SwingUtilities.isEventDispatchThread()) repaint();
