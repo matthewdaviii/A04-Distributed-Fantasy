@@ -1,12 +1,13 @@
 package edu.calpoly.csc3100.fantasy;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
  * Processes received MQTT player-state messages independently of the broker.
- * Students complete the topic, decoding, and self-message handling.
  *
  * @author CSC 3100 Instructional Team
  * @version 1.0
@@ -24,13 +25,26 @@ public final class IncomingPlayerHandler {
   }
 
   public void accept(String topic, byte[] payload) {
-    if (!topic.startsWith(topicPrefix)) return;
+    if (topic == null || payload == null || !topic.startsWith(topicPrefix)) {
+      return;
+    }
+
     String player = topic.substring(topicPrefix.length());
-    if (player.isEmpty() || player.contains("/") || player.equals(localUsername)) return;
-    // TODO: complete the snapshot processing below.
-    // TODO: decode UTF-8 JSON using PlayerCodec.
-    // TODO: require the topic suffix to match the decoded player.
-    // TODO: deliver valid remote state to receiver exactly once.
-    // TODO: handle malformed JSON without terminating the MQTT callback.
+    if (player.isEmpty() || player.contains("/") || player.equals(localUsername)) {
+      return;
+    }
+
+    PlayerState state;
+    try {
+      String json = StandardCharsets.UTF_8.newDecoder()
+          .decode(ByteBuffer.wrap(payload)).toString();
+      state = PlayerCodec.decode(json);
+    } catch (CharacterCodingException | IllegalArgumentException e) {
+      return;
+    }
+
+    if (player.equals(state.player())) {
+      receiver.accept(state);
+    }
   }
 }
